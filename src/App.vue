@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { Chart } from "chart.js";
 import "chart.js/auto";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRunningDataStore, type RunningData } from "./stores/counter";
-
-const acquisitions = ref(null as null | HTMLCanvasElement);
+const chartCanvas = ref(null as null | HTMLCanvasElement);
 
 const runningDataStore = useRunningDataStore();
 const startOfThisYear = new Date(new Date(Date.now()).getFullYear(), 0, 1);
-console.log(startOfThisYear);
 const minDateSelected = ref(startOfThisYear as undefined | Date);
 const maxDateSelected = ref(undefined as undefined | Date);
 
@@ -26,11 +24,14 @@ const displayedData = computed((): RunningData[] => {
 
 let chart = undefined as undefined | Chart;
 
+function formatSeconds(seconds: number): string {
+  return new Date(seconds * 1000).toISOString().slice(11, 19);
+}
+
 watch(displayedData, (d) => {
-  if (acquisitions.value === null) return;
-  const data = runningDataStore.data;
+  if (chartCanvas.value === null) return;
   if (chart !== undefined) chart.destroy();
-  chart = new Chart(acquisitions.value, {
+  chart = new Chart(chartCanvas.value, {
     type: "line",
     options: {
       scales: {
@@ -38,6 +39,15 @@ watch(displayedData, (d) => {
           type: "linear",
           display: true,
           position: "left",
+          ticks: {
+            callback(tickValue, index, ticks) {
+              if (typeof tickValue === "string") {
+                throw Error("Please only input integers");
+              }
+              let bla = tickValue / 1000;
+              return `${bla}km`;
+            },
+          },
         },
         runningTime: {
           type: "linear",
@@ -47,6 +57,15 @@ watch(displayedData, (d) => {
           // grid line settings
           grid: {
             drawOnChartArea: false, // only want the grid lines for one axis to show up
+          },
+          ticks: {
+            callback(tickValue, index, ticks) {
+              if (typeof tickValue === "string") {
+                throw Error("Please only input integers");
+              }
+              return formatSeconds(tickValue);
+            },
+            stepSize: 60,
           },
         },
         mpkm: {
@@ -59,17 +78,52 @@ watch(displayedData, (d) => {
           },
         },
       },
+      plugins: {
+        tooltip: {
+          intersect: true,
+          mode: "x",
+          position: "nearest",
+          callbacks: {
+            label(tooltipItem) {
+              switch (tooltipItem.datasetIndex) {
+                case 0: // Duration
+                  return (
+                    tooltipItem.dataset.label +
+                    ": " +
+                    formatSeconds(tooltipItem.parsed.y)
+                  );
+
+                case 1: // Distance
+                  return (
+                    tooltipItem.dataset.label +
+                    ": " +
+                    tooltipItem.parsed.y +
+                    "m"
+                  );
+                case 2: // Minutes per km
+                  return (
+                    tooltipItem.dataset.label +
+                    ": " +
+                    tooltipItem.parsed.y.toFixed(2) +
+                    " min/km"
+                  );
+              }
+              return tooltipItem.dataset.label;
+            },
+          },
+        },
+      },
     },
     data: {
       labels: displayedData.value.map((row) => row.date.toLocaleDateString()),
       datasets: [
         {
-          label: "Time run",
+          label: "Duration",
           data: displayedData.value.map((row) => row.runningTimeSeconds),
           yAxisID: "runningTime",
         },
         {
-          label: "Meters run",
+          label: "Distance",
           data: displayedData.value.map((row) => row.distanceMeters),
           yAxisID: "metersRun",
         },
@@ -99,7 +153,7 @@ runningDataStore.update();
     Last twenty
   </div>
   <div @click="minDateSelected = undefined">All</div>
-  <canvas ref="acquisitions"></canvas>
+  <canvas ref="chartCanvas"></canvas>
 </template>
 
 <style scoped></style>
