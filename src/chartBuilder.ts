@@ -4,6 +4,31 @@ function formatSeconds(seconds: number): string {
   return new Date(seconds * 1000).toISOString().slice(11, 19);
 }
 
+export function buildChartData(data: Array<any>) {
+  return {
+    labels: data.map((row) => row.date.toLocaleDateString()),
+    datasets: [
+      {
+        label: "Duration",
+        data: data.map((row) => row.runningTimeSeconds),
+        yAxisID: "runningTime",
+      },
+      {
+        label: "Distance",
+        data: data.map((row) => row.distanceMeters),
+        yAxisID: "metersRun",
+      },
+      {
+        label: "Minutes per km",
+        data: data.map(
+          (row) => row.runningTimeSeconds / 60 / (row.distanceMeters / 1000)
+        ),
+        yAxisID: "mpkm",
+      },
+    ],
+  };
+}
+
 export function buildChart(
   element: HTMLCanvasElement,
   data: Array<any>
@@ -50,15 +75,14 @@ export function buildChart(
             drawOnChartArea: false,
           },
         },
-        x: {
-          type: undefined,
-          ticks: {
-            stepSize: 3,
-            callback(tickValue, index, ticks) {
-              return tickValue;
-            },
-          },
-        },
+        // x: {
+        //   ticks: {
+        //     stepSize: 3,
+        //     callback(tickValue, index, ticks) {
+        //       return tickValue;
+        //     },
+        //   },
+        // },
       },
       plugins: {
         tooltip: {
@@ -96,27 +120,6 @@ export function buildChart(
         },
       },
     },
-    data: {
-      labels: data.map((row) => row.date.toLocaleDateString()),
-      datasets: [
-        {
-          label: "Duration",
-          data: data.map((row) => row.runningTimeSeconds),
-          yAxisID: "runningTime",
-        },
-        {
-          label: "Distance",
-          data: data.map((row) => row.distanceMeters),
-          yAxisID: "metersRun",
-        },
-        {
-          label: "Minutes per km",
-          data: data.map(
-            (row) => row.runningTimeSeconds / 60 / (row.distanceMeters / 1000)
-          ),
-          yAxisID: "mpkm",
-        },
-      ],
-    },
+    data: buildChartData(data),
   });
 }
