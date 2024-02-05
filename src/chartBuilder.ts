@@ -87,31 +87,30 @@ export function buildChart(
       plugins: {
         tooltip: {
           intersect: false,
-          mode: "x",
+          mode: "nearest",
           position: "nearest",
+          axis: "x",
           callbacks: {
             label(tooltipItem: TooltipItem<"line">) {
               switch (tooltipItem.datasetIndex) {
                 case 0: // Duration
                   return (
-                    tooltipItem.dataset.label +
-                    ": " +
+                    // tooltipItem.dataset.label +
+                    // ": " +
                     formatSeconds(tooltipItem.parsed.y)
                   );
 
                 case 1: // Distance
                   return (
-                    tooltipItem.dataset.label +
-                    ": " +
-                    tooltipItem.parsed.y +
-                    "m"
+                    // tooltipItem.dataset.label +
+                    // ": " +
+                    tooltipItem.parsed.y + "m"
                   );
                 case 2: // Minutes per km
                   return (
-                    tooltipItem.dataset.label +
-                    ": " +
-                    tooltipItem.parsed.y.toFixed(2) +
-                    " min/km"
+                    // tooltipItem.dataset.label +
+                    // ": " +
+                    tooltipItem.parsed.y.toFixed(2) + " min/km"
                   );
               }
               return tooltipItem.dataset.label;
