@@ -1,10 +1,11 @@
 import { Chart, type TooltipItem } from "chart.js";
+import type { RunningData } from "./stores/runningData";
 
 function formatSeconds(seconds: number): string {
   return new Date(seconds * 1000).toISOString().slice(11, 19);
 }
 
-export function buildChartData(data: Array<any>) {
+export function buildChartData(data: Array<RunningData>) {
   return {
     labels: data.map((row) => row.date.toLocaleDateString()),
     datasets: [

@@ -2,7 +2,7 @@
 import { Chart } from "chart.js";
 import "chart.js/auto";
 import { computed, ref, watch } from "vue";
-import { useRunningDataStore, type RunningData } from "./stores/counter";
+import { useRunningDataStore, type RunningData } from "./stores/runningData";
 import { buildChart, buildChartData } from "./chartBuilder";
 const chartCanvas = ref(null as null | HTMLCanvasElement);
 
@@ -25,14 +25,87 @@ const displayedData = computed((): RunningData[] => {
 
 let chart = undefined as undefined | Chart;
 
-watch(displayedData, (d) => {
+function calculateDatasetDelta(
+  inputDataset: RunningData[],
+  targetDataset: RunningData[]
+): {
+  front: { drop: number; add: Array<RunningData> };
+  back: { drop: number; add: Array<RunningData> };
+} {
+  const drop_front_count = inputDataset.findIndex(
+    (v) => v.date.getTime() == targetDataset[0].date.getTime()
+  );
+  const add_front_index = targetDataset.findIndex(
+    (v) => v.date.getTime() == inputDataset[0].date.getTime()
+  );
+  const drop_back_count = inputDataset.findIndex(
+    (v) =>
+      v.date.getTime() == targetDataset[targetDataset.length - 1].date.getTime()
+  );
+  const add_back_index = targetDataset.findIndex(
+    (v) =>
+      v.date.getTime() == inputDataset[inputDataset.length - 1].date.getTime()
+  );
+
+  if (add_front_index === -1 && drop_front_count === -1) {
+    return {
+      front: { drop: inputDataset.length, add: [] },
+      back: { drop: 0, add: targetDataset },
+    };
+  }
+
+  const front = {
+    drop: drop_front_count === -1 ? 0 : drop_front_count,
+    add: targetDataset.slice(0, Math.max(0, add_front_index)),
+  };
+  const back = {
+    drop:
+      drop_back_count === -1 ? 0 : inputDataset.length - drop_back_count - 1,
+    add: add_back_index === -1 ? [] : targetDataset.slice(add_back_index + 1),
+  };
+
+  return { front, back };
+}
+
+watch(displayedData, (d, oldD) => {
   if (chartCanvas.value === null) return;
   if (chart === undefined) {
-    chart = buildChart(chartCanvas.value, displayedData.value);
+    chart = buildChart(chartCanvas.value, d);
   } else {
-    // chart.data.datasets.forEach((v) => v.data.pop());
-    // chart.data.labels?.pop();
-    chart.data = buildChartData(displayedData.value);
+    // const changeDelta = calculateDatasetDelta(oldD, d);
+    // chart.data.labels?.splice(0, changeDelta.front.drop);
+    // if (changeDelta.back.drop > 0) {
+    //   chart.data.labels?.splice(-changeDelta.back.drop);
+    // }
+    // chart.data.datasets.forEach((v) => {
+    //   v.data.splice(0, changeDelta.front.drop);
+    //   if (changeDelta.back.drop > 0) {
+    //     v.data.splice(-changeDelta.back.drop);
+    //   }
+    // });
+    // const add_front_data = buildChartData(changeDelta.front.add);
+    // const add_back_data = buildChartData(changeDelta.back.add);
+    // chart.data.labels?.splice(0, 0, add_front_data.labels);
+    // chart.data.labels?.push(...add_back_data.labels);
+    // chart.data.datasets.forEach((v) => {
+    //   const relevant_dataset_front = add_front_data.datasets.find(
+    //     (x) => x.label == v.label
+    //   );
+    //   const relevant_dataset_back = add_back_data.datasets.find(
+    //     (x) => x.label == v.label
+    //   );
+    //   if (
+    //     relevant_dataset_front === undefined ||
+    //     relevant_dataset_back === undefined
+    //   ) {
+    //     console.error("Could not find dataset");
+    //     return;
+    //   }
+
+    //   v.data.splice(0, 0, relevant_dataset_front.data);
+    //   v.data.push(...relevant_dataset_back.data);
+    // });
+    chart.data = buildChartData(d);
     chart.update();
   }
 });
